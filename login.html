@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BWS — Login</title>
+<meta name="description" content="Sign in or create your BWS account.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Expanded:wght@700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ==========================================================================
+   00 — DESIGN TOKENS
+   Same system as the BWS marketing site: ink black / warm off-white / ash
+   gray, with a light <> dark flip for the theme toggle instead of a
+   separate accent palette.
+   ========================================================================== */
+:root{
+  --ink:        #0c0c0d;
+  --paper:      #f4efe6;
+  --ash:        #8a8579;
+  --ash-dim:    #6b675e;
+  --silver:     #b8bcc2;
+
+  --bg:         var(--paper);
+  --surface:    rgba(12,12,13,0.04);
+  --surface-2:  rgba(12,12,13,0.03);
+  --text:       var(--ink);
+  --text-dim:   var(--ash-dim);
+  --line:       rgba(12,12,13,0.14);
+  --line-strong:rgba(12,12,13,0.28);
+  --invert:     var(--paper);
+
+  --display: 'Archivo Expanded', sans-serif;
+  --body:    'Inter', sans-serif;
+  --mono:    'IBM Plex Mono', monospace;
+  --ease: cubic-bezier(.16,.84,.44,1);
+}
+
+.dark-theme{
+  --bg:         var(--ink);
+  --surface:    rgba(244,239,230,0.05);
+  --surface-2:  rgba(244,239,230,0.035);
+  --text:       var(--paper);
+  --text-dim:   var(--ash);
+  --line:       rgba(244,239,230,0.14);
+  --line-strong:rgba(244,239,230,0.28);
+  --invert:     var(--ink);
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; }
+html{ scroll-behavior:smooth; }
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+}
+
+body{
+  min-height:100vh;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--body);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  overflow-x:hidden;
+  position:relative;
+  transition:background .5s var(--ease), color .5s var(--ease);
+}
+
+a{ color:inherit; text-decoration:none; }
+button{ font:inherit; color:inherit; background:none; border:none; cursor:pointer; }
+
+/* ambient backdrop: faint layer-ring motif + oversized wordmark, same
+   device used across the BWS site so the login screen doesn't feel like
+   a separate product */
+.backdrop{ position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+.backdrop svg{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:1100px; max-width:200vw; }
+.backdrop circle{ fill:none; stroke:var(--line); stroke-width:1; }
+.backdrop .word{
+  position:absolute; bottom:-6vw; left:50%; transform:translateX(-50%);
+  font-family:var(--display); font-weight:800; font-size:22vw; letter-spacing:-0.02em;
+  color:transparent; -webkit-text-stroke:1px var(--line); white-space:nowrap;
+}
+
+/* ==========================================================================
+   01 — HEADER / NAV
+   ========================================================================== */
+header{
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  display:flex; justify-content:center;
+  padding:18px 6vw;
+}
+.nav-shell{
+  width:100%; max-width:1200px;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 26px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  box-shadow:0 10px 30px rgba(0,0,0,0.06);
+  transition:background .5s var(--ease), border-color .5s var(--ease);
+}
+.logo{ font-family:var(--display); font-weight:800; font-size:19px; letter-spacing:.02em; }
+.navigation{ display:flex; align-items:center; gap:34px; }
+.navigation a{
+  font-family:var(--mono); font-size:12px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--text-dim); position:relative; padding-bottom:3px;
+}
+.navigation a::after{
+  content:''; position:absolute; left:0; bottom:0; width:0; height:1px; background:var(--text);
+  transition:width .35s var(--ease);
+}
+.navigation a:hover::after{ width:100%; }
+.navigation a:hover{ color:var(--text); }
+
+.nav-actions{ display:flex; align-items:center; gap:12px; }
+.theme-toggle-btn{
+  width:38px; height:38px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  border:1px solid var(--line); font-size:15px;
+  transition:transform .4s var(--ease), border-color .3s ease, background .3s ease;
+}
+.theme-toggle-btn:hover{ transform:rotate(20deg); background:var(--surface); }
+
+.btn{
+  font-family:var(--mono); font-size:12.5px; letter-spacing:.08em; text-transform:uppercase;
+  padding:12px 26px; border-radius:999px;
+  transition:transform .4s var(--ease), background .3s ease, color .3s ease;
+  display:inline-flex; align-items:center; gap:8px;
+}
+.btnLogin-popup{ background:var(--text); color:var(--bg); }
+.btnLogin-popup:hover{ transform:translateY(-2px); }
+
+.burger{ display:none; flex-direction:column; gap:5px; width:22px; }
+.burger span{ height:1.5px; width:100%; background:var(--text); }
+
+@media (max-width:820px){
+  .navigation a{ display:none; }
+  .burger{ display:flex; }
+}
+
+/* ==========================================================================
+   02 — PAGE INTRO (visible behind the login card)
+   ========================================================================== */
+.intro{ position:relative; z-index:1; text-align:center; padding:0 24px; }
+.intro .eyebrow{
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--text-dim); display:inline-flex; align-items:center; gap:10px; margin-bottom:18px;
+}
+.intro .eyebrow::before, .intro .eyebrow::after{ content:''; width:22px; height:1px; background:var(--silver); }
+.intro h1{
+  font-family:var(--display); font-weight:800; text-transform:uppercase; letter-spacing:-0.02em;
+  font-size:clamp(30px,5vw,50px); line-height:1.02; margin-bottom:14px;
+}
+.intro p{ color:var(--text-dim); font-size:15px; max-width:40ch; margin:0 auto; }
+
+.intro.reveal{ opacity:0; transform:translateY(18px); transition:opacity .9s var(--ease), transform .9s var(--ease); }
+.intro.reveal.in{ opacity:1; transform:translateY(0); }
+
+/* ==========================================================================
+   03 — AUTH CARD (wrapper)
+   ========================================================================== */
+.overlay-scrim{
+  position:fixed; inset:0; z-index:150;
+  background:rgba(8,8,9,0.5);
+  backdrop-filter:blur(3px);
+  opacity:0; pointer-events:none;
+  transition:opacity .5s var(--ease);
+}
+.overlay-scrim.show{ opacity:1; pointer-events:auto; }
+
+.wrapper{
+  position:fixed; z-index:200; top:50%; left:50%;
+  width:420px; max-width:90vw;
+  border-radius:26px;
+  border:1px solid var(--line-strong);
+  background:color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+  box-shadow:0 30px 80px rgba(0,0,0,0.35);
+  overflow:hidden;
+  padding:46px 40px 40px;
+
+  transform:translate(-50%,-46%) scale(0.92);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .5s var(--ease), transform .55s var(--ease), height .4s var(--ease);
+  height:500px;
+}
+.wrapper.active-popup{
+  opacity:1; transform:translate(-50%,-50%) scale(1); pointer-events:auto;
+}
+.wrapper.active{ height:560px; }
+
+.wrapper .layer-deco{ position:absolute; top:-70px; right:-70px; width:220px; height:220px; pointer-events:none; opacity:.5; }
+.wrapper .layer-deco circle{ fill:none; stroke:var(--line); stroke-width:1; }
+
+.icon-close{
+  position:absolute; right:16px; top:16px; z-index:5;
+  width:34px; height:34px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  border:1px solid var(--line); font-size:16px; color:var(--text-dim);
+  transition:transform .4s var(--ease), border-color .3s ease, color .3s ease;
+}
+.icon-close:hover{ transform:rotate(90deg); color:var(--text); border-color:var(--line-strong); }
+
+.form-box{ position:relative; z-index:2; }
+.form-box.login{ transition:transform .55s var(--ease), opacity .4s ease; transform:translateX(0); }
+.form-box.registration{ position:absolute; inset:46px 40px auto 40px; transition:none; transform:translateX(420px); opacity:0; }
+.wrapper.active .form-box.login{ transition:none; transform:translateX(-420px); opacity:0; }
+.wrapper.active .form-box.registration{ transition:transform .55s var(--ease), opacity .5s ease .05s; transform:translateX(0); opacity:1; }
+
+.form-box .eyebrow{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--text-dim);
+}
+.form-box h2{
+  font-family:var(--display); font-weight:800; text-transform:uppercase; letter-spacing:-0.01em;
+  font-size:30px; margin-top:8px; margin-bottom:26px;
+}
+
+.input-box{
+  position:relative; width:100%; margin-bottom:26px;
+  border-bottom:1px solid var(--line-strong);
+  padding-bottom:10px;
+  transition:border-color .3s ease;
+}
+.input-box:focus-within{ border-color:var(--text); }
+.input-box .icon{
+  position:absolute; right:2px; top:0; font-size:17px; color:var(--text-dim);
+  transition:color .3s ease;
+}
+.input-box:focus-within .icon{ color:var(--text); }
+.input-box label{
+  position:absolute; top:0; left:0;
+  font-family:var(--mono); font-size:13px; letter-spacing:.04em; color:var(--text-dim);
+  pointer-events:none; transition:.35s var(--ease);
+}
+.input-box input{
+  width:100%; background:transparent; border:none; outline:none;
+  padding:16px 26px 2px 0;
+  font-family:var(--body); font-size:15px; font-weight:500; color:var(--text);
+}
+.input-box input:focus ~ label,
+.input-box input:valid ~ label{
+  top:-16px; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-dim);
+}
+
+.remember-forgot{
+  display:flex; justify-content:space-between; align-items:center;
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.03em; color:var(--text-dim);
+  margin:-10px 0 24px; flex-wrap:wrap; gap:8px;
+}
+.remember-forgot label{ display:flex; align-items:center; gap:7px; }
+.remember-forgot input[type="checkbox"]{ accent-color:var(--text); width:14px; height:14px; }
+.remember-forgot a{ color:var(--text-dim); border-bottom:1px solid var(--line-strong); padding-bottom:1px; transition:color .3s ease, border-color .3s ease; }
+.remember-forgot a:hover{ color:var(--text); border-color:var(--text); }
+
+.form-box .submit-btn{
+  width:100%; height:48px; border-radius:999px;
+  background:var(--text); color:var(--bg);
+  font-family:var(--mono); font-size:12.5px; letter-spacing:.1em; text-transform:uppercase;
+  transition:transform .4s var(--ease), opacity .3s ease;
+}
+.form-box .submit-btn:hover{ transform:translateY(-2px); }
+
+.switch-line{
+  margin-top:22px; text-align:center;
+  font-family:var(--body); font-size:13.5px; color:var(--text-dim);
+}
+.switch-line a{
+  color:var(--text); font-weight:600; border-bottom:1px solid var(--line-strong);
+  padding-bottom:1px; transition:border-color .3s ease;
+}
+.switch-line a:hover{ border-color:var(--text); }
+
+/* staggered field entrance whenever a form becomes the active one */
+.form-box .field-in{ opacity:0; transform:translateY(10px); animation:fieldIn .6s var(--ease) forwards; }
+.wrapper.active .form-box.registration .field-in{ animation-play-state:running; }
+@keyframes fieldIn{ to{ opacity:1; transform:translateY(0); } }
+
+@media (max-width:480px){
+  .wrapper{ padding:40px 26px 34px; }
+  .form-box.registration{ inset:40px 26px auto 26px; transform:translateX(100vw); }
+  .wrapper.active .form-box.login{ transform:translateX(-100vw); }
+}
+
+/* ==========================================================================
+   04 — MOBILE MENU
+   ========================================================================== */
+.mobile-menu{
+  position:fixed; inset:0; z-index:120; background:var(--bg);
+  display:flex; flex-direction:column; justify-content:center; gap:26px; padding:0 32px;
+  transform:translateY(-100%); transition:transform .5s var(--ease);
+}
+.mobile-menu.open{ transform:translateY(0); }
+.mobile-menu a{
+  font-family:var(--display); font-weight:800; font-size:34px; text-transform:uppercase;
+}
+</style>
+</head>
+<body>
+
+<div class="backdrop" aria-hidden="true">
+  <svg viewBox="0 0 1100 1100"><circle cx="550" cy="550" r="220"/><circle cx="550" cy="550" r="300"/><circle cx="550" cy="550" r="380"/><circle cx="550" cy="550" r="460"/></svg>
+  <span class="word">BWS</span>
+</div>
+
+<!-- ==========================================================================
+     SECTION 1 — NAVIGATION
+     ========================================================================== -->
+<header>
+  <div class="nav-shell">
+    <span class="logo">BWS</span>
+    <nav class="navigation">
+      <a href="#">Home</a>
+      <a href="#">Services</a>
+      <a href="#">Contact</a>
+      <a href="#">About</a>
+    </nav>
+    <div class="nav-actions">
+      <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle theme">🌙</button>
+      <button class="btn btnLogin-popup">Login</button>
+      <button class="burger" id="burgerBtn" aria-label="Open menu"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#">Home</a>
+  <a href="#">Services</a>
+  <a href="#">Contact</a>
+  <a href="#">About</a>
+</div>
+
+<!-- ==========================================================================
+     SECTION 2 — PAGE INTRO
+     ========================================================================== -->
+<div class="intro reveal" id="introBlock">
+  <p class="eyebrow">Member Access</p>
+  <h1>Welcome to<br>BWS</h1>
+  <p>Sign in to manage your account, or create one in a few seconds.</p>
+</div>
+
+<!-- ==========================================================================
+     SECTION 3 — AUTH CARD
+     ========================================================================== -->
+<div class="overlay-scrim" id="overlayScrim"></div>
+
+<div class="wrapper" id="wrapper">
+  <svg class="layer-deco" viewBox="0 0 220 220"><circle cx="150" cy="70" r="50"/><circle cx="150" cy="70" r="80"/><circle cx="150" cy="70" r="110"/></svg>
+
+  <button class="icon-close" id="iconClose" aria-label="Close">&times;</button>
+
+  <div class="form-box login">
+    <p class="eyebrow">Account &middot; Sign In</p>
+    <h2>Login</h2>
+    <form action="#">
+      <div class="input-box">
+        <span class="icon"><ion-icon name="mail-outline"></ion-icon></span>
+        <input id="login-email" type="email" required>
+        <label for="login-email">Email</label>
+      </div>
+      <div class="input-box">
+        <span class="icon"><ion-icon name="lock-closed-outline"></ion-icon></span>
+        <input id="login-password" type="password" required>
+        <label for="login-password">Password</label>
+      </div>
+      <div class="remember-forgot">
+        <label><input type="checkbox"> Remember me</label>
+        <a href="#">Forgot password?</a>
+      </div>
+      <button type="submit" class="submit-btn">Login</button>
+      <p class="switch-line">Don't have an account? <a href="#" class="register-link">Register</a></p>
+    </form>
+  </div>
+
+  <div class="form-box registration">
+    <p class="eyebrow">Account &middot; Create</p>
+    <h2>Register</h2>
+    <form action="#">
+      <div class="input-box field-in" style="animation-delay:.05s">
+        <span class="icon"><ion-icon name="person-circle-outline"></ion-icon></span>
+        <input id="register-username" type="text" required>
+        <label for="register-username">Username</label>
+      </div>
+      <div class="input-box field-in" style="animation-delay:.12s">
+        <span class="icon"><ion-icon name="mail-outline"></ion-icon></span>
+        <input id="register-email" type="email" required>
+        <label for="register-email">Email</label>
+      </div>
+      <div class="input-box field-in" style="animation-delay:.19s">
+        <span class="icon"><ion-icon name="lock-closed-outline"></ion-icon></span>
+        <input id="register-password" type="password" required>
+        <label for="register-password">Password</label>
+      </div>
+      <div class="remember-forgot">
+        <label><input type="checkbox" required> I agree with the</label>
+        <a href="#">Terms &amp; Conditions</a>
+      </div>
+      <button type="submit" class="submit-btn">Register</button>
+      <p class="switch-line">Already have an account? <a href="#" class="login-link">Login</a></p>
+    </form>
+  </div>
+</div>
+
+<script type="module" src="https://unpkg.com/ionicons@8.0.13/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@8.0.13/dist/ionicons/ionicons.js"></script>
+
+<script>
+/* ==========================================================================
+   SECTION 4 — INTERACTION LAYER
+   Same behaviors as the original script.js (login/register swap, popup
+   open/close, theme persistence) plus the entrance reveal and scrim.
+   ========================================================================== */
+(function(){
+  const wrapper   = document.getElementById('wrapper');
+  const scrim     = document.getElementById('overlayScrim');
+  const loginLink = document.querySelector('.login-link');
+  const registerLink = document.querySelector('.register-link');
+  const btnPopup  = document.querySelector('.btnLogin-popup');
+  const iconClose = document.getElementById('iconClose');
+  const burger    = document.getElementById('burgerBtn');
+  const mmenu     = document.getElementById('mobileMenu');
+  const themeBtn  = document.getElementById('themeToggleBtn');
+
+  function openPopup(){
+    wrapper.classList.add('active-popup');
+    scrim.classList.add('show');
+  }
+  function closePopup(){
+    wrapper.classList.remove('active-popup');
+    scrim.classList.remove('show');
+  }
+
+  btnPopup.addEventListener('click', openPopup);
+  iconClose.addEventListener('click', closePopup);
+  scrim.addEventListener('click', closePopup);
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closePopup(); });
+
+  registerLink.addEventListener('click', (e)=>{ e.preventDefault(); wrapper.classList.add('active'); });
+  loginLink.addEventListener('click', (e)=>{ e.preventDefault(); wrapper.classList.remove('active'); });
+
+  burger.addEventListener('click', ()=> mmenu.classList.toggle('open'));
+  mmenu.querySelectorAll('a').forEach(a => a.addEventListener('click', ()=> mmenu.classList.remove('open')));
+
+  themeBtn.addEventListener('click', toggleTheme);
+  function toggleTheme(){
+    const isDark = document.body.classList.toggle('dark-theme');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    themeBtn.textContent = isDark ? '☀️' : '🌙';
+  }
+  function applyStoredTheme(){
+    if(localStorage.getItem('theme') === 'dark'){
+      document.body.classList.add('dark-theme');
+      themeBtn.textContent = '☀️';
+    }
+  }
+  applyStoredTheme();
+
+  requestAnimationFrame(()=> setTimeout(()=> document.getElementById('introBlock').classList.add('in'), 100));
+})();
+</script>
+</body>
+</html>
